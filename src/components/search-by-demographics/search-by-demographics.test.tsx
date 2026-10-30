@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from '@testing-library/react';
 import SearchByDemographics from './search-by-demographics.component';
+import { getDescription, getQueryDetails } from './search-by-demographics.utils';
 
 const expectedQuery = {
   query: {
@@ -125,4 +126,38 @@ describe('Test the search by demographics component', () => {
     expect(mockSubmit.mock.calls[0]).toEqual(untouchedSubmit.mock.calls[0]);
     vi.useRealTimers();
   });
+
+  it.each([
+    [
+      'start',
+      '2000-01-01',
+      '',
+      { startDate: '2000-01-01' },
+      'All Patients and born on or after 2000-01-01 that are alive',
+    ],
+    [
+      'end',
+      '',
+      '2000-12-31',
+      { endDate: '2000-12-31' },
+      'All Patients and born on or before 2000-12-31 that are alive',
+    ],
+  ])(
+    'filters by birth date when only the %s date is set',
+    (_, birthDayStartDate, birthDayEndDate, dates, description) => {
+      const demographics = {
+        gender: 'all',
+        minAge: undefined,
+        maxAge: undefined,
+        birthDayStartDate,
+        birthDayEndDate,
+        livingStatus: 'alive',
+      };
+
+      const { query } = getQueryDetails(demographics);
+
+      expect(query.rowFilters.find(({ key }) => key.endsWith('bornDuringPeriod')).parameterValues).toEqual(dates);
+      expect(getDescription(demographics)).toBe(description);
+    },
+  );
 });
